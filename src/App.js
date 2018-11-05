@@ -1,25 +1,141 @@
 import React, { Component } from 'react';
 import logo from './logo.svg';
 import './App.css';
+import Message from "./Message.js"
+import MessageForm from "./MessageForm.js"
+import EditMessageForm from "./EditMessageForm.js"
+
+
+const apiUrl = "http://fetch-message-in-the-bottle.herokuapp.com/api/v2/messages"
+
+let messageInfoProps
 
 class App extends Component {
+
+  state = {
+    messages: [],
+    editFormShown: false
+  }
+
+  getMessages = () => {
+    fetch(apiUrl)
+    .then(r => r.json())
+    .then( (messageRes) => {
+      this.setState({
+        messages: messageRes
+      })
+    })
+  }
+
+  componentDidMount(){
+    this.getMessages()
+  }
+
+  renderNewMessageForm = () => {
+    return (
+      <MessageForm
+      makeNewMessage={this.makeNewMessage}
+      sendMessageEditInfoToForm={this.sendMessageEditInfoToForm}
+      />
+    )
+  } // renders new message form
+
+  makeNewMessage = (name, message) => {
+    fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        message: {message: message,
+        real_name: name}
+      })
+    })
+    .then(resp => this.getMessages())
+
+  }// end of makeNewMessage`
+
+  getMessageToEditInfo = (messageProps) => {
+    messageInfoProps = messageProps
+  }// send message info up to App when edit button is clicked on the message
+
+  toggleEditForm = () => {
+    if (!this.state.editFormShown){
+      this.setState({
+        editFormShown: true
+      })
+    }
+    else if (this.state.editFormShown){
+      this.setState({
+        editFormShown: false
+      })
+    }
+  } // changes form from new to edit or back
+
+  renderEditForm = () => {
+    return (
+      <EditMessageForm
+      sendEditMessageFetchRequest={this.sendEditMessageFetchRequest}
+      messageInfo={messageInfoProps}
+      />
+    )
+  }
+
+  sendEditMessageFetchRequest = (editedName, editedMessage, messageId) => {
+    console.log(editedName, editedMessage, messageId)
+    fetch(`http://fetch-message-in-the-bottle.herokuapp.com/api/v2/messages/${messageId}`, {
+      method: "PATCH",
+      headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message: {message: editedMessage,
+        real_name: editedName }
+      })
+    })// end of PATCH fetch
+    .then(r => r.json())
+    .then((editRes) => {
+      console.log(editRes);
+      this.getMessages()
+      this.toggleEditForm()
+    })// rerender after edit
+
+  }
+
+  deleteMessage = (messageId) => {
+    console.log(messageId);
+    fetch(`http://fetch-message-in-the-bottle.herokuapp.com/api/v2/messages/${messageId}`, {method:"DELETE"})
+    .then(r => r.json())
+    .then((r) => {
+      console.log(r)
+      this.getMessages()
+    })
+  }// end of delete message fn
+
+  renderAllMessages = () => {
+    let messageCounter = 0
+    return this.state.messages.map((message) => {
+      return <Message
+              deleteMessage={this.deleteMessage}
+              key={++messageCounter}
+              message={message}
+              getMessageToEditInfo={this.getMessageToEditInfo}
+              toggleEditForm={this.toggleEditForm}
+              />
+    })
+  }
+
   render() {
     return (
       <div className="App">
-        <header className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
-          <p>
-            Edit <code>src/App.js</code> and save to reload.
-          </p>
-          <a
-            className="App-link"
-            href="https://reactjs.org"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Learn React
-          </a>
-        </header>
+        <div>
+        {this.state.editFormShown ? this.renderEditForm() : this.renderNewMessageForm()}
+        </div><br></br>
+        <div>Show Selected Message Will Go Here</div>
+        <div>{this.renderAllMessages()}</div>
+
       </div>
     );
   }
