@@ -4,6 +4,8 @@ import './App.css';
 import Message from "./Message.js"
 import MessageForm from "./MessageForm.js"
 import EditMessageForm from "./EditMessageForm.js"
+import ShowMessage from "./ShowMessage.js"
+
 
 
 const apiUrl = "http://fetch-message-in-the-bottle.herokuapp.com/api/v2/messages"
@@ -14,7 +16,8 @@ class App extends Component {
 
   state = {
     messages: [],
-    editFormShown: false
+    editFormShown: false,
+    showSelectedMessage: false
   }
 
   getMessages = () => {
@@ -114,6 +117,34 @@ class App extends Component {
     })
   }// end of delete message fn
 
+
+
+  toggleShowMessage = () => {
+    if (!this.state.showSelectedMessage){
+      this.setState({
+        showSelectedMessage: true
+      })
+      }
+      else if (this.state.showSelectedMessage) {
+        this.setState({
+          showSelectedMessage: false
+        })
+      }
+  }
+
+  selectedMessageToShow = (messageId) => {
+
+    fetch(`http://fetch-message-in-the-bottle.herokuapp.com/api/v2/messages/${messageId}`)
+    .then(r => r.json())
+    .then((singleMessageRes) => {
+      this.renderShowMessage(singleMessageRes)
+    })
+  }
+
+  renderShowMessage = (messageObj) => {
+    return <ShowMessage message={messageObj}/>
+  }
+
   renderAllMessages = () => {
     let messageCounter = 0
     return this.state.messages.map((message) => {
@@ -123,6 +154,8 @@ class App extends Component {
               message={message}
               getMessageToEditInfo={this.getMessageToEditInfo}
               toggleEditForm={this.toggleEditForm}
+              selectedMessageToShow={this.selectedMessageToShow}
+              toggleShowMessage={this.toggleShowMessage}
               />
     })
   }
@@ -133,7 +166,7 @@ class App extends Component {
         <div>
         {this.state.editFormShown ? this.renderEditForm() : this.renderNewMessageForm()}
         </div><br></br>
-        <div>Show Selected Message Will Go Here</div>
+        <div>{this.state.showSelectedMessage ? this.renderShowMessage() : null}</div>
         <div>{this.renderAllMessages()}</div>
 
       </div>
